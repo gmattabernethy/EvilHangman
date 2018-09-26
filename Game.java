@@ -1,31 +1,52 @@
 import java.io.File;
-import java.util.Set;
+import java.io.InvalidObjectException;
+import java.util.Scanner;
+import java.util.*;
 
 public class Game implements hangman.IEvilHangmanGame{
-    private char[] guessedLetters;
+    private Set<Character> guessedLetters;
     private SetManager sm;
     private int guesses;
+    private String word;
 
-    Game(int guesses){
-        guessedLetters = new char[26];
+    Game(int guesses, int wordLength){
+        guessedLetters = new HashSet<>();
         this.guesses = guesses;
+        word = "";
+        for(int i = 0; i < wordLength; i++) word+="-";
     }
 
     @Override
     public Set<String> makeGuess(char guess) throws GuessAlreadyMadeException {
         if(!Character.isLetter(guess)){
-            System.out.println("Invalid input");
             return null;
         }
 
         guess = Character.toLowerCase(guess);
 
-        if(guessedLetters[guess-'a'] != 0 ) throw new GuessAlreadyMadeException();
+        if(guessedLetters.contains(guess) ) throw new GuessAlreadyMadeException();
 
         guesses--;
-        guessedLetters[guess-'a'] = guess;
+        guessedLetters.add(guess);
 
         return sm.Partition(guess);
+    }
+
+    private int updateWord(Set<String> set, char ch){
+        StringBuilder builder = new StringBuilder();
+        Iterator<String> it = set.iterator();
+        String s = it.next();
+        int count = 0;
+        for (int i = 0; i < s.length(); i++){
+            if(s.substring(i,i+1).equals(Character.toString(ch))){
+                builder.append(ch);
+                count++;
+            }
+            else builder.append(word.substring(i,i+1));
+        }
+
+        this.word = builder.toString();
+        return count;
     }
 
     @Override
@@ -34,23 +55,52 @@ public class Game implements hangman.IEvilHangmanGame{
     }
 
     public static void main(String[] args){
-        Game game = new Game(26);
-        File file = new File("dictionary.txt");
-        game.startGame(file, 2);
-        System.out.println(game.sm.set.size());
+        int wordLength = Integer.getInteger(args[2]);
+        Game game = new Game(Integer.getInteger(args[1]), wordLength);
+        File file = new File(args[0]);
+        game.startGame(file, wordLength);
+
         try {
-            game.makeGuess('A');
-            System.out.println(game.guesses);
-            game.makeGuess('e');
-            System.out.println(game.guesses);
-            game.makeGuess('o');
-            System.out.println(game.guesses);
-        }catch (GuessAlreadyMadeException ex){
-            System.out.println("You already used that letter");
+            Scanner in = new Scanner(System.in);
+            char ch;
+            Set<String> set = new HashSet<>();
+
+            while (game.guesses > 0){
+                System.out.println("You have " + game.guesses + " guesses left");
+                System.out.print("Used letters: ");
+                for(char c : game.guessedLetters) System.out.print(c + " ");
+                System.out.println();
+                System.out.println("Word: " + game.word);
+                System.out.print("Enter guess: " );
+
+                try {
+                    String str = in.next();
+                    if(str.length() > 1) throw new InvalidObjectException(str);
+                    ch = str.charAt(0);
+                    set = game.makeGuess(ch);
+                    if(set == null) throw new InvalidObjectException(str);
+                    int numOfLetter = game.updateWord(set, ch);
+                    if(numOfLetter > 0) System.out.println("Yes, there is " + numOfLetter + " " + ch + "\n");
+                    else System.out.println("Sorry, there are no " + ch + "'s\n");
+                }catch (GuessAlreadyMadeException ex){
+                    System.out.println("You already used that letter");
+                }catch (InvalidObjectException ex) {
+                    System.out.println("Invalid input");
+                }
+
+                if(set.size() == 1){
+                    System.out.println("You win!\nThe word was: " + game.word);
+                    break;
+                }
+            }
+
+            if(set.size() > 1){
+                System.out.println("You lose!\nThe word was: " + set.iterator().next().toString());
+            }
+
+            in.close();
+        } catch (Exception ex) {
+            ex.printStackTrace();
         }
-        System.out.println(game.guessedLetters[0]);
-
-        System.out.println(game.sm.set.size());
-
     }
 }

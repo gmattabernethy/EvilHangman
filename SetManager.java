@@ -36,11 +36,7 @@ public class SetManager {
         HashMap<Integer, Set<String>> partitions = new HashMap<>();
 
         for(String s: set){
-            int addAt = wordLength;
-
-            if(s.contains(Character.toString(c))){
-                addAt = AddAtIndex(s, c);
-            }
+            int addAt = AddAtIndex(s, c);
 
             if(partitions.get(addAt) == null) partitions.put(addAt, new HashSet<>());
             partitions.get(addAt).add(s);
@@ -62,40 +58,107 @@ public class SetManager {
 
     private Set<String> EvilAlgorithm(Map<Integer, Set<String>> partitions, int max){
         Iterator it = partitions.entrySet().iterator();
-        int min = wordLength;
 
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
             Set<String> s = (HashSet)pair.getValue();
-            int charNum = CharNum((Integer)pair.getKey());
-            if(charNum < min) min = charNum;
             if(s.size() < max) it.remove();
         }
-
-        if(partitions.size() == 1) return partitions.entrySet().iterator().next().getValue();
 
         it = partitions.entrySet().iterator();
 
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            Set<String> s = (HashSet)pair.getValue();
-            int charNum = CharNum((Integer)pair.getKey());
-            if(s.size() > min) it.remove();
+            int i = (int)pair.getKey();
+            if(i == 0) return (Set<String>)pair.getValue();
+
         }
 
-        if(partitions.size() == 1) return partitions.entrySet().iterator().next().getValue();
+        if(partitions.size() > 1) Tiebreaker2(partitions);
+        if(partitions.size() > 1) Tiebreaker3(partitions);
 
-        return null;
+        while (partitions.size() > 1){
+            partitions = Tiebreaker4(partitions);
+            Tiebreaker3(partitions);
+        }
+
+        return partitions.entrySet().iterator().next().getValue();
     }
 
-    private int CharNum(int i){
+    private void Tiebreaker2(Map<Integer, Set<String>> partitions){
+        Iterator it = partitions.entrySet().iterator();
+        int min = wordLength;
+
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            int charNum = NumOfChar((Integer)pair.getKey());
+            if(charNum < min) min = charNum;
+        }
+
+        it = partitions.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            int charNum = NumOfChar((Integer)pair.getKey());
+            if(charNum > min) it.remove();
+        }
+    }
+
+    private void Tiebreaker3(Map<Integer, Set<String>> partitions){
+        Iterator it = partitions.entrySet().iterator();
+        int rightMost = 0;
+
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            int rightIndex = Rightmost((Integer)pair.getKey(), 0);
+            if(rightIndex > rightMost) rightMost = rightIndex;
+        }
+
+        it = partitions.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            int rightIndex = Rightmost((Integer)pair.getKey(), 0);
+            if(rightIndex < rightMost) it.remove();
+        }
+    }
+
+    private Map<Integer, Set<String>> Tiebreaker4(Map<Integer, Set<String>> partitions){
+        Map<Integer, Set<String>> truncated = new HashMap<>();
+        int rightmost = Rightmost(partitions.entrySet().iterator().next().getKey(), 0);
+        Iterator it = partitions.entrySet().iterator();
+
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            int truncatedKey = (int)pair.getKey() - (int)Math.pow(2,rightmost-1);
+            truncated.put(truncatedKey,(Set<String>) pair.getValue());
+        }
+
+        return truncated;
+    }
+
+    private int Rightmost(int i, int count){
+        count ++;
+
+        if (i == 1) return count;
+        if(i == 0) return 0;
+
+        int rightmost = Rightmost(i / 2, count);
+
+        if (rightmost > 0) return rightmost;
+        if(i%2 > 0) return count;
+
+        return 0;
+    }
+
+    private int NumOfChar(int i){
         if (i <= 1) {
 
             return i;
         }
         int remainder = i%2;
 
-        return remainder + CharNum(i / 2);
+        return remainder + NumOfChar(i / 2);
     }
 
     private int AddAtIndex(String s, char c) {
@@ -107,13 +170,12 @@ public class SetManager {
 
         return addAt;
     }
-
+/*
     public static void main(String[] args){
         File file = new File("test.txt");
-        SetManager sm = new SetManager(file, 4);
-        //sm.Partition('y');
-        System.out.println(sm.AddAtIndex("crap", 'a'));
-        System.out.println(sm.CharNum(sm.AddAtIndex("crap", 'a')));
+        SetManager sm = new SetManager(file, 7);
+        sm.Partition('e');
+        for(String s : sm.set) System.out.println(s);
     }
-
+*/
 }
