@@ -1,33 +1,30 @@
+package hangman;
+
 import java.io.File;
 import java.io.InvalidObjectException;
 import java.util.Scanner;
 import java.util.*;
 
 public class Game implements hangman.IEvilHangmanGame{
-    private Set<Character> guessedLetters;
+    private List<Character> guessedLetters;
     private SetManager sm;
     private int guesses;
     private String word;
 
-    Game(int guesses, int wordLength){
-        guessedLetters = new HashSet<>();
-        this.guesses = guesses;
-        word = "";
-        for(int i = 0; i < wordLength; i++) word+="-";
-    }
+    public Game(){}
 
     @Override
     public Set<String> makeGuess(char guess) throws GuessAlreadyMadeException {
         if(!Character.isLetter(guess)){
             return null;
         }
-
         guess = Character.toLowerCase(guess);
 
         if(guessedLetters.contains(guess) ) throw new GuessAlreadyMadeException();
 
         guesses--;
         guessedLetters.add(guess);
+        Collections.sort(guessedLetters);
 
         return sm.Partition(guess);
     }
@@ -51,19 +48,25 @@ public class Game implements hangman.IEvilHangmanGame{
 
     @Override
     public void startGame(File dictionary, int wordLength) {
+        guessedLetters = new ArrayList<Character>();
+
+        word = "";
+        for(int i = 0; i < wordLength; i++) word+="-";
+
         sm = new SetManager(dictionary, wordLength);
     }
 
     public static void main(String[] args){
-        int wordLength = Integer.getInteger(args[2]);
-        Game game = new Game(Integer.getInteger(args[1]), wordLength);
+        int wordLength = Integer.parseInt(args[1]);
+        Game game = new Game();
+        game.guesses = Integer.parseInt(args[2]);
         File file = new File(args[0]);
         game.startGame(file, wordLength);
 
         try {
             Scanner in = new Scanner(System.in);
             char ch;
-            Set<String> set = new HashSet<>();
+            Set<String> set = new HashSet<String>();
 
             while (game.guesses > 0){
                 System.out.println("You have " + game.guesses + " guesses left");
@@ -74,13 +77,16 @@ public class Game implements hangman.IEvilHangmanGame{
                 System.out.print("Enter guess: " );
 
                 try {
-                    String str = in.next();
-                    if(str.length() > 1) throw new InvalidObjectException(str);
+                    String str = in.nextLine();
+                    if(str.length() != 1) throw new InvalidObjectException(str);
                     ch = str.charAt(0);
                     set = game.makeGuess(ch);
                     if(set == null) throw new InvalidObjectException(str);
                     int numOfLetter = game.updateWord(set, ch);
-                    if(numOfLetter > 0) System.out.println("Yes, there is " + numOfLetter + " " + ch + "\n");
+                    if(numOfLetter > 0){
+                        System.out.println("Yes, there is " + numOfLetter + " " + ch + "\n");
+                        game.guesses++;    
+                    }
                     else System.out.println("Sorry, there are no " + ch + "'s\n");
                 }catch (GuessAlreadyMadeException ex){
                     System.out.println("You already used that letter");
@@ -88,8 +94,8 @@ public class Game implements hangman.IEvilHangmanGame{
                     System.out.println("Invalid input");
                 }
 
-                if(set.size() == 1){
-                    System.out.println("You win!\nThe word was: " + game.word);
+                if(set != null && set.size() == 1 && game.word.equals(set.iterator().next().toString())){
+                    System.out.println("You win!\nThe word was: " + set.iterator().next().toString());
                     break;
                 }
             }
