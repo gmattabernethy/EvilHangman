@@ -10,8 +10,11 @@ public class Game implements hangman.IEvilHangmanGame{
     private SetManager sm;
     private int guesses;
     private String word;
+	private boolean won;
 
-    public Game(){}
+    public Game(){
+		won = false;
+	}
 
     @Override
     public Set<String> makeGuess(char guess) throws GuessAlreadyMadeException {
@@ -89,18 +92,19 @@ public class Game implements hangman.IEvilHangmanGame{
                     }
                     else System.out.println("Sorry, there are no " + ch + "'s\n");
                 }catch (GuessAlreadyMadeException ex){
-                    System.out.println("You already used that letter");
+                    System.out.println("You already used that letter\n");
                 }catch (InvalidObjectException ex) {
-                    System.out.println("Invalid input");
+                    System.out.println("Invalid input\n");
                 }
 
                 if(set != null && set.size() == 1 && game.word.equals(set.iterator().next().toString())){
                     System.out.println("You win!\nThe word was: " + set.iterator().next().toString());
-                    break;
+					game.won = true;
+					break;
                 }
             }
 
-            if(set.size() > 1){
+            if(!game.won){
                 System.out.println("You lose!\nThe word was: " + set.iterator().next().toString());
             }
 
